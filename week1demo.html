@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Demo 0 — ScoreLeaderboard 提交说明</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Helvetica Neue", sans-serif;
+    background: #0d1117; color: #e6edf3; line-height: 1.7; padding: 40px 20px; font-size: 15px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 700; color: #f0f6fc; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #8b949e; margin-bottom: 28px; }
+  h2 { font-size: 18px; font-weight: 600; color: #a78bfa; margin-top: 36px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+  h3 { font-size: 15px; font-weight: 600; color: #f0f6fc; margin-top: 20px; margin-bottom: 10px; }
+  p { margin-bottom: 12px; color: #c9d1d9; }
+  strong { color: #f0f6fc; }
+  code { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+  p code, li code, td code { background: #1c2128; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #f0883e; border: 1px solid #30363d; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin-bottom: 14px; padding-left: 24px; }
+  li { margin-bottom: 6px; color: #c9d1d9; }
+  blockquote { border-left: 3px solid #a78bfa; background: #161b22; padding: 14px 18px; margin: 16px 0; border-radius: 0 8px 8px 0; color: #b1bac4; font-size: 14px; }
+  blockquote strong { color: #e6edf3; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; }
+  thead th { background: #161b22; color: #a78bfa; font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid #30363d; white-space: nowrap; }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid #21262d; color: #c9d1d9; vertical-align: top; word-break: break-word; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #161b22; }
+
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+  .tag-purple { background: #1c1245; color: #a78bfa; border: 1px solid #3b2d70; }
+  .tag-green { background: #0d2818; color: #3fb950; border: 1px solid #1a5c32; }
+  .tag-blue { background: #0d1a2d; color: #58a6ff; border: 1px solid #1a3a5c; }
+  .tag-orange { background: #2d1b00; color: #f0883e; border: 1px solid #5c3a00; }
+
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px 20px; margin: 14px 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #a78bfa; margin-bottom: 10px; }
+
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 18px; margin: 14px 0; overflow-x: auto; }
+  pre code { font-size: 13px; color: #c9d1d9; line-height: 1.6; }
+  .kw { color: #ff7b72; } .typ { color: #79c0ff; } .str { color: #a5d6ff; }
+  .cmt { color: #8b949e; } .fn { color: #d2a8ff; } .num { color: #79c0ff; }
+
+  .resume-box {
+    background: linear-gradient(135deg, #161b22 0%, #1a1520 100%);
+    border: 1px solid #3b2d70; border-radius: 12px; padding: 24px; margin: 20px 0;
+    text-align: center;
+  }
+  .resume-box .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .resume-box .text { font-size: 16px; color: #e6edf3; line-height: 1.6; }
+  .resume-box .text strong { color: #a78bfa; }
+
+  .direction-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .dir-card { border-radius: 10px; padding: 16px; border: 1px solid; text-align: center; }
+  .dir-tech { background: #1c1245; border-color: #3b2d70; }
+  .dir-ops { background: #161b22; border-color: #30363d; opacity: 0.5; }
+  .dir-research { background: #161b22; border-color: #30363d; opacity: 0.5; }
+  .dir-card .name { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .dir-tech .name { color: #a78bfa; }
+  .dir-ops .name { color: #3fb950; }
+  .dir-research .name { color: #58a6ff; }
+  .dir-card .desc { font-size: 12px; color: #8b949e; }
+  .dir-card .check { font-size: 20px; margin-top: 8px; }
+
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #21262d; text-align: center; font-size: 12px; color: #484f58; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Mini Demo 0 — ScoreLeaderboard</h1>
+  <p class="subtitle">Mini Demo 0 提交说明</p>
+
+  <!-- ============ 提交内容 1 ============ -->
+  <h2>1. Week 1 作品说明</h2>
+
+  <div class="card">
+    <div class="card-title">作品名称：ScoreLeaderboard — 基于任务认证的链上分数排行榜</div>
+    <p>一个部署在 Monad Testnet 上的智能合约，实现了<strong>任务系统 + 分数累加 + 实时排行榜</strong>的完整流程。</p>
+    <p>用户不直接输入分数，而是通过完成预定义任务（1/2/3/5/7/10 分六级）间接获得分数。合约自动累加并维护排行榜，任何人都可以链上查询排名。</p>
+<pre><code><span class="cmt">// 核心流程</span>
+用户完成任务 → 验证者调用 <span class="fn">completeTask</span>(user, taskId) → 合约自动加分 → 排行榜实时更新
+     │                                            │
+     │  分值由合约定义，用户无法自行修改             │  任何人可查询，链上可验证
+     └─────────────── 信任最小化 ──────────────────┘</code></pre>
+  </div>
+
+  <p><strong>项目文件：</strong></p>
+  <ul>
+    <li>合约源码：<code>leaderboard-contract/contracts/ScoreLeaderboard.sol</code></li>
+    <li>编译脚本：<code>leaderboard-contract/scripts/compile.js</code></li>
+    <li>部署脚本：<code>leaderboard-contract/scripts/deploy.js</code></li>
+    <li>交互演示：<code>leaderboard-contract/scripts/interact.js</code></li>
+    <li>说明文档：<code>leaderboard-contract/README.md</code></li>
+  </ul>
+
+  <!-- ============ 提交内容 2 ============ -->
+  <h2>2. Demo 说明文档</h2>
+
+  <h3>2.1 任务分值体系</h3>
+  <table>
+    <thead><tr><th>等级</th><th>分值</th><th>预定义任务</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>入门</td><td>1 分</td><td>Daily Check-in, Social Share</td><td>每日参与</td></tr>
+      <tr><td>基础</td><td>2 分</td><td>Quiz Bronze</td><td>基础问答</td></tr>
+      <tr><td>进阶</td><td>3 分</td><td>Quiz Silver</td><td>进阶问答</td></tr>
+      <tr><td>中级</td><td>5 分</td><td>Trade Novice, Community Build</td><td>交易/社区</td></tr>
+      <tr><td>高级</td><td>7 分</td><td>Quiz Gold, Trade Pro</td><td>高难度</td></tr>
+      <tr><td>大师</td><td>10 分</td><td>Trade Master, Bug Bounty</td><td>最高分值</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 合约函数一览</h3>
+  <table>
+    <thead><tr><th>类型</th><th>函数</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-orange">Write</span></td><td><code>completeTask(user, taskId)</code></td><td>验证者为用户标记任务完成，自动加分</td></tr>
+      <tr><td><span class="tag tag-orange">Write</span></td><td><code>batchCompleteTasks(users[], taskIds[])</code></td><td>批量完成，节省 Gas</td></tr>
+      <tr><td><span class="tag tag-orange">Write</span></td><td><code>registerTask(name, points)</code></td><td>Owner 注册新任务类型</td></tr>
+      <tr><td><span class="tag tag-blue">Read</span></td><td><code>getScore(user)</code></td><td>查用户总分</td></tr>
+      <tr><td><span class="tag tag-blue">Read</span></td><td><code>getRank(user)</code></td><td>查用户排名</td></tr>
+      <tr><td><span class="tag tag-blue">Read</span></td><td><code>getLeaderboard()</code></td><td>完整排行榜（已排序）</td></tr>
+      <tr><td><span class="tag tag-blue">Read</span></td><td><code>getTopN(n)</code></td><td>Top N 排行榜</td></tr>
+      <tr><td><span class="tag tag-blue">Read</span></td><td><code>getUserSummary(user)</code></td><td>分数+排名+任务数+是否注册</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 交互演示结果</h3>
+  <div class="card">
+<pre><code><span class="cmt">// 模拟 4 个用户完成不同任务</span>
+
+  Alice: Daily Check-in (1) + Quiz Silver (3)    =  <span class="num">4</span> 分  →  Rank #<span class="num">4</span>
+  Bob:   Trade Novice (5) + Quiz Gold (7)        = <span class="num">12</span> 分  →  Rank #<span class="num">1</span> 🏆
+  Carol: Bug Bounty (10)                         = <span class="num">10</span> 分  →  Rank #<span class="num">3</span>
+  Dave:  Social Share (1) + Trade Master (10)    = <span class="num">11</span> 分  →  Rank #<span class="num">2</span>
+
+<span class="cmt">// 排行榜输出（降序）</span>
+  #1  Bob    | <span class="num">12</span> pts
+  #2  Dave   | <span class="num">11</span> pts
+  #3  Carol  | <span class="num">10</span> pts
+  #4  Alice  |  <span class="num">4</span> pts
+
+<span class="cmt">// 防重复检查</span>
+  Re-completing Daily Check-in for Alice: REJECTED ✓</code></pre>
+  </div>
+
+  <h3>2.4 哪部分是真实链上操作</h3>
+  <table>
+    <thead><tr><th>操作</th><th>链上</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>合约部署</td><td><span class="tag tag-green">真实</span></td><td>交易广播到 Monad Testnet</td></tr>
+      <tr><td><code>completeTask</code> 调用</td><td><span class="tag tag-green">真实</span></td><td>写操作，修改链上状态，消耗 Gas</td></tr>
+      <tr><td><code>getLeaderboard</code> 查询</td><td><span class="tag tag-green">真实</span></td><td>链上计算排序，结果可验证</td></tr>
+      <tr><td>模拟用户地址</td><td><span class="tag tag-orange">演示</span></td><td>硬编码地址，实际应用用真实钱包</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.5 AI 辅助 vs 人工判断</h3>
+  <table>
+    <thead><tr><th>任务</th><th>AI 贡献</th><th>人工贡献</th></tr></thead>
+    <tbody>
+      <tr><td>合约设计</td><td>建议 mapping + array 存储结构</td><td>确定六级分值体系，设计权限模型</td></tr>
+      <tr><td>合约编写</td><td>生成完整 Solidity 代码</td><td>修复 NatSpec 编译错误（taskIds → taskIds_）</td></tr>
+      <tr><td>工程脚本</td><td>编写 compile/deploy/interact</td><td>选择 Remix 部署方式（安全考量）</td></tr>
+      <tr><td>任务分值</td><td>建议 1/3/5/10 四级</td><td>扩展为 1/2/3/5/7/10 六级</td></tr>
+      <tr><td>部署方式</td><td>提供脚本方案</td><td>改用 Remix + MetaMask（私钥不离开钱包）</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============ 提交内容 3 ============ -->
+  <h2>3. 方向选择：Tech</h2>
+
+  <div class="direction-grid">
+    <div class="dir-card dir-tech">
+      <div class="name">Tech</div>
+      <div class="desc">合约 · DApp · 工具链</div>
+      <div class="check">✅</div>
+    </div>
+    <div class="dir-card dir-ops">
+      <div class="name">Ops</div>
+      <div class="desc">社区 · 增长 · 运营</div>
+      <div class="check">　</div>
+    </div>
+    <div class="dir-card dir-research">
+      <div class="name">Research</div>
+      <div class="desc">研究 · 分析 · 建模</div>
+      <div class="check">　</div>
+    </div>
+  </div>
+
+  <p><strong>选择理由：</strong></p>
+  <ol>
+    <li><strong>已有实践基础：</strong>从 SimpleStorage 到 ScoreLeaderboard，已完成两个合约的编写→编译→部署→交互全链路。</li>
+    <li><strong>兴趣驱动：</strong>亲手部署合约并在区块浏览器看到 <code>status: 1</code> 的成就感是核心驱动力。</li>
+    <li><strong>技能匹配：</strong>有编程基础，对状态管理、权限模型、事件机制理解较快。</li>
+    <li><strong>方案有技术纵深：</strong>Week 1 设计的 AI Agent 竞技场需要 5 个核心合约，Week 2 可逐个实现。</li>
+  </ol>
+
+  <!-- ============ 提交内容 4 ============ -->
+  <h2>4. 简历一句话</h2>
+
+  <div class="resume-box">
+    <div class="label">Portfolio / Resume Line</div>
+    <div class="text">设计并实现了基于任务认证的<strong>链上分数排行榜智能合约</strong>，支持六级分值体系、批量任务完成、实时排名查询和 Top N 排行榜，部署于 <strong>Monad Testnet</strong>，验证了高吞吐区块链在游戏化任务激励系统中的应用可行性。</div>
+  </div>
+
+  <!-- ============ 提交内容 5 ============ -->
+  <h2>5. Week 2 推进方向</h2>
+
+  <div class="card">
+    <div class="card-title">计划推进的核心工作</div>
+    <ol>
+      <li><strong>BattleEngine 核心合约：</strong>从伪代码推进到可部署的 Solidity 实现，包含 <code>submitMove</code> → 状态更新 → 胜负判定的完整对战循环。</li>
+      <li><strong>AgentNFT (ERC-721)：</strong>实现 Agent 铸造功能，每个 Agent 有独立属性，与排行榜系统集成。</li>
+      <li><strong>前端对战画面：</strong>监听链上 <code>MoveExecuted</code> 事件，实时渲染排行榜更新。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-title">需要助教或同伴帮助的问题</div>
+    <ol>
+      <li><strong>Monad 并行执行：</strong>如果两个 <code>completeTask</code> 同时执行，是否需要特殊并发控制？如何设计合约最大化并行优势？</li>
+      <li><strong>Foundry vs Hardhat：</strong>多合约系统（5 个合约）应选哪个工具链？Monad Testnet 配置是否有坑？</li>
+      <li><strong>链上事件 → 前端：</strong>400ms 出块频率下，直接监听 RPC event 够用吗？需要 The Graph 吗？</li>
+      <li><strong>排行榜 Gas 优化：</strong>冒泡排序 O(n²) 在大规模用户时 Gas 很高，有没有更高效的链上排序方案？</li>
+    </ol>
+  </div>
+
+  <h3>从 Week 1 到 Week 2 的演进</h3>
+<pre><code>Week 1:
+  <span style="color:#3fb950">✅</span> SimpleStorage        — Hello World 级合约（set / get / getOwner）
+  <span style="color:#3fb950">✅</span> ScoreLeaderboard     — 任务系统 + 分数排行榜（权限 + 排序 + 批量）
+  <span style="color:#3fb950">✅</span> 高频交互分析          — 9 方向 × 4 问题
+  <span style="color:#3fb950">✅</span> AI Agent 竞技场方案   — Research + Tech + Ops 三部分
+
+Week 2:
+  <span style="color:#8b949e">⬜</span> BattleEngine         — 对战引擎（从伪代码到可部署）
+  <span style="color:#8b949e">⬜</span> AgentNFT             — ERC-721 Agent 铸造
+  <span style="color:#8b949e">⬜</span> 前端对战画面          — 链上事件 → 实时渲染
+  <span style="color:#8b949e">⬜</span> Monad Testnet 集成部署</code></pre>
+
+  <blockquote>从 SimpleStorage 的"Hello World"到 ScoreLeaderboard 的任务激励系统——每个合约都在解决一个更复杂的问题。Week 2 要把这个趋势延续到 AI Agent 竞技场的 BattleEngine。</blockquote>
+
+  <div class="footer">
+    Mini Demo 0 · ScoreLeaderboard
+  </div>
+
+</div>
+</body>
+</html>
