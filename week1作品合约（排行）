@@ -1,0 +1,382 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+/**
+ * @title ScoreLeaderboard
+ * @dev  Monad Buidler Camp — Mini Demo 0
+ *       基于任务认证的链上分数排行榜系统
+ *
+ * 核心设计理念：
+ *   1. 任务系统 — 预定义任务类型，每个任务有固定分值（1 / 2 / 3 / 5 / 7 / 10）
+ *   2. 分数累加 — 用户完成任务后，分值自动累加到个人总分
+ *   3. 排行榜   — 支持实时排名查询、Top N 查询、全量排行榜查询
+ *   4. 权限控制 — 只有授权验证者可以为用户标记任务完成
+ *
+ * 用户不直接输入分数，而是通过完成任务间接获得分数。
+ * 这就是"任务系统淡化直接写分数输入"的核心设计。
+ *
+ */
+contract ScoreLeaderboard {
+
+    // ============================================================
+    //  存储结构
+    // ============================================================
+
+    // ---------- 任务系统 ----------
+
+    /// @dev 任务 ID => 分值（0 表示任务不存在）
+    mapping(uint256 => uint256) public taskPoints;
+
+    /// @dev 任务 ID => 名称
+    mapping(uint256 => string) public taskNames;
+
+    /// @dev 已注册的任务 ID 列表（用于遍历）
+    uint256[] public taskIdList;
+
+    /// @dev 下一个自定义任务 ID（从 100 开始，避免与预定义冲突）
+    uint256 public nextCustomTaskId;
+
+    // ---------- 分数系统 ----------
+
+    /// @dev 用户地址 => 总分
+    mapping(address => uint256) public userScores;
+
+    /// @dev 用户 => 任务 => 是否已完成
+    mapping(address => mapping(uint256 => bool)) public taskCompleted;
+
+    /// @dev 用户 => 完成任务数
+    mapping(address => uint256) public userTaskCount;
+
+    // ---------- 参与者管理 ----------
+
+    /// @dev 所有参与者地址
+    address[] public participants;
+
+    /// @dev 地址 => 是否已加入
+    mapping(address => bool) public isParticipant;
+
+    // ---------- 权限 ----------
+
+    address public owner;
+
+    /// @dev 授权验证者（可以是多个）
+    mapping(address => bool) public verifiers;
+
+    // ============================================================
+    //  事件
+    // ============================================================
+
+    event TaskRegistered(uint256 indexed taskId, string name, uint256 points);
+    event TaskCompleted(
+        address indexed user,
+        uint256 indexed taskId,
+        uint256 points,
+        uint256 totalScore,
+        uint256 totalTasksCompleted,
+        uint256 timestamp
+    );
+    event VerifierAdded(address indexed verifier);
+    event VerifierRemoved(address indexed verifier);
+
+    // ============================================================
+    //  修饰符
+    // ============================================================
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "ScoreLeaderboard: caller is not owner");
+        _;
+    }
+
+    modifier onlyVerifier() {
+        require(
+            verifiers[msg.sender] || msg.sender == owner,
+            "ScoreLeaderboard: caller is not verifier"
+        );
+        _;
+    }
+
+    // ============================================================
+    //  构造函数 — 注册预定义任务
+    // ============================================================
+
+    /// @dev 分值等级：1 / 2 / 3 / 5 / 7 / 10
+    ///      对应不同难度的任务，越难分值越高
+    constructor() {
+        owner = msg.sender;
+        nextCustomTaskId = 100;
+
+        // ---- 1 分任务 ----
+        _registerTask(0, "Daily Check-in",      1);
+        _registerTask(1, "Social Share",        1);
+
+        // ---- 2 分任务 ----
+        _registerTask(2, "Quiz Bronze",         2);
+
+        // ---- 3 分任务 ----
+        _registerTask(3, "Quiz Silver",         3);
+
+        // ---- 5 分任务 ----
+        _registerTask(4, "Trade Novice",        5);
+        _registerTask(5, "Community Build",      5);
+
+        // ---- 7 分任务 ----
+        _registerTask(6, "Quiz Gold",           7);
+        _registerTask(7, "Trade Pro",           7);
+
+        // ---- 10 分任务 ----
+        _registerTask(8, "Trade Master",       10);
+        _registerTask(9, "Bug Bounty",         10);
+    }
+
+    // ============================================================
+    //  内部函数
+    // ============================================================
+
+    function _registerTask(uint256 taskId, string memory name, uint256 points) internal {
+        taskPoints[taskId] = points;
+        taskNames[taskId] = name;
+        taskIdList.push(taskId);
+        emit TaskRegistered(taskId, name, points);
+    }
+
+    function _ensureParticipant(address user) internal {
+        if (!isParticipant[user]) {
+            participants.push(user);
+            isParticipant[user] = true;
+        }
+    }
+
+    function _completeTask(address user, uint256 taskId) internal {
+        uint256 points = taskPoints[taskId];
+        require(points > 0, "ScoreLeaderboard: task does not exist");
+        require(!taskCompleted[user][taskId], "ScoreLeaderboard: task already completed");
+
+        _ensureParticipant(user);
+
+        userScores[user] += points;
+        taskCompleted[user][taskId] = true;
+        userTaskCount[user]++;
+
+        emit TaskCompleted(
+            user,
+            taskId,
+            points,
+            userScores[user],
+            userTaskCount[user],
+            block.timestamp
+        );
+    }
+
+    /// @dev 返回排序后的排行榜（内部复用）
+    function _getSortedLeaderboard()
+        internal
+        view
+        returns (address[] memory addrs, uint256[] memory scores)
+    {
+        uint256 len = participants.length;
+        addrs = new address[](len);
+        scores = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            addrs[i] = participants[i];
+            scores[i] = userScores[participants[i]];
+        }
+
+        // 冒泡排序 — 降序（分数高的在前）
+        // 适用于参与者数量在数百以内的场景
+        for (uint256 i = 0; i < len; i++) {
+            for (uint256 j = 0; j < len - 1 - i; j++) {
+                if (scores[j] < scores[j + 1]) {
+                    // swap scores
+                    uint256 tmpS = scores[j];
+                    scores[j] = scores[j + 1];
+                    scores[j + 1] = tmpS;
+                    // swap addresses
+                    address tmpA = addrs[j];
+                    addrs[j] = addrs[j + 1];
+                    addrs[j + 1] = tmpA;
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    //  管理函数 — 仅 Owner
+    // ============================================================
+
+    /// @notice 注册新的自定义任务
+    /// @param name 任务名称
+    /// @param points 分值（必须 > 0）
+    /// @return taskId 新分配的任务 ID
+    function registerTask(string memory name, uint256 points)
+        external
+        onlyOwner
+        returns (uint256)
+    {
+        require(points > 0, "ScoreLeaderboard: points must be > 0");
+        uint256 taskId = nextCustomTaskId++;
+        _registerTask(taskId, name, points);
+        return taskId;
+    }
+
+    /// @notice 添加验证者
+    function addVerifier(address verifier) external onlyOwner {
+        verifiers[verifier] = true;
+        emit VerifierAdded(verifier);
+    }
+
+    /// @notice 移除验证者
+    function removeVerifier(address verifier) external onlyOwner {
+        verifiers[verifier] = false;
+        emit VerifierRemoved(verifier);
+    }
+
+    // ============================================================
+    //  核心功能 — 任务完成与分数累加
+    // ============================================================
+
+    /// @notice 为用户标记任务完成（单次）
+    /// @param user  用户地址
+    /// @param taskId 任务 ID
+    function completeTask(address user, uint256 taskId) external onlyVerifier {
+        _completeTask(user, taskId);
+    }
+
+    /// @notice 批量标记任务完成（节省 Gas）
+    /// @param users   用户地址数组
+    /// @param taskIds_ 任务 ID 数组（与 users 一一对应）
+    function batchCompleteTasks(
+        address[] calldata users,
+        uint256[] calldata taskIds_
+    ) external onlyVerifier {
+        require(users.length == taskIds_.length, "ScoreLeaderboard: length mismatch");
+
+        for (uint256 i = 0; i < users.length; i++) {
+            // 跳过不存在的任务或已完成的任务（批量操作容错）
+            if (taskPoints[taskIds_[i]] > 0 && !taskCompleted[users[i]][taskIds_[i]]) {
+                _completeTask(users[i], taskIds_[i]);
+            }
+        }
+    }
+
+    // ============================================================
+    //  查询函数 — View / Pure
+    // ============================================================
+
+    /// @notice 获取用户总分
+    function getScore(address user) external view returns (uint256) {
+        return userScores[user];
+    }
+
+    /// @notice 获取用户排名（1-indexed，同分同名次）
+    /// @dev 排名 = 比自己分数高的人数 + 1
+    function getRank(address user) external view returns (uint256) {
+        uint256 userScore = userScores[user];
+        if (userScore == 0) return 0; // 未参与
+
+        uint256 rank = 1;
+        for (uint256 i = 0; i < participants.length; i++) {
+            if (userScores[participants[i]] > userScore) {
+                rank++;
+            }
+        }
+        return rank;
+    }
+
+    /// @notice 获取参与者总数
+    function getTotalParticipants() external view returns (uint256) {
+        return participants.length;
+    }
+
+    /// @notice 获取已注册任务总数
+    function getTotalTasks() external view returns (uint256) {
+        return taskIdList.length;
+    }
+
+    /// @notice 检查用户是否完成某任务
+    function hasCompletedTask(address user, uint256 taskId) external view returns (bool) {
+        return taskCompleted[user][taskId];
+    }
+
+    /// @notice 获取用户完成的任务数
+    function getTaskCount(address user) external view returns (uint256) {
+        return userTaskCount[user];
+    }
+
+    /// @notice 获取所有已注册任务
+    /// @return ids    任务 ID 数组
+    /// @return names  任务名称数组
+    /// @return points 任务分值数组
+    function getAllTasks()
+        external
+        view
+        returns (
+            uint256[] memory ids,
+            string[] memory names,
+            uint256[] memory points
+        )
+    {
+        uint256 len = taskIdList.length;
+        ids = new uint256[](len);
+        names = new string[](len);
+        points = new uint256[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            uint256 tid = taskIdList[i];
+            ids[i] = tid;
+            names[i] = taskNames[tid];
+            points[i] = taskPoints[tid];
+        }
+    }
+
+    /// @notice 获取完整排行榜（按分数降序）
+    /// @return addrs  参与者地址数组（已排序）
+    /// @return scores 对应分数数组（已排序）
+    function getLeaderboard()
+        external
+        view
+        returns (address[] memory addrs, uint256[] memory scores)
+    {
+        return _getSortedLeaderboard();
+    }
+
+    /// @notice 获取 Top N 排行榜
+    /// @param n 前 N 名
+    function getTopN(uint256 n)
+        external
+        view
+        returns (address[] memory addrs, uint256[] memory scores)
+    {
+        (address[] memory allAddrs, uint256[] memory allScores) = _getSortedLeaderboard();
+
+        uint256 resultLen = n < allAddrs.length ? n : allAddrs.length;
+        addrs = new address[](resultLen);
+        scores = new uint256[](resultLen);
+
+        for (uint256 i = 0; i < resultLen; i++) {
+            addrs[i] = allAddrs[i];
+            scores[i] = allScores[i];
+        }
+    }
+
+    /// @notice 获取用户完整信息摘要
+    /// @return score      总分
+    /// @return rank       排名（0 = 未参与）
+    /// @return taskCount  完成任务数
+    /// @return isRegistered 是否已注册
+    function getUserSummary(address user)
+        external
+        view
+        returns (
+            uint256 score,
+            uint256 rank,
+            uint256 taskCount,
+            bool isRegistered
+        )
+    {
+        score = userScores[user];
+        taskCount = userTaskCount[user];
+        isRegistered = isParticipant[user];
+        rank = this.getRank(user);
+    }
+}
